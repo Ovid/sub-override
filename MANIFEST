@@ -4,6 +4,7 @@ Makefile.PL
 MANIFEST
 META.yml			Module meta-data (added by MakeMaker)
 README
-t/10override.t
-t/pod-coverage.t
-t/pod.t
+README.md
+t/override.t
+xt/pod-coverage.t
+xt/pod.t
