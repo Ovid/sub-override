@@ -1,5 +1,9 @@
 Revision history for Perl extension Sub::Override.
 
+0.09  Wed Jan 16 2013
+      Switch from Test::Exception to Test::Fatal.
+      Fix two typos on the POD. Patches from Ansgar Burchardt and david.skyba.
+
 0.08  Wed Sep 21 2005
       Remembered to update Changes file.  Grr.  I really need a
       "lint" script which can check to see if I've forgotten

@@ -3,7 +3,7 @@ package Sub::Override;
 use strict;
 use warnings;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 my $_croak = sub {
     local *__ANON__ = '__ANON__croak';
@@ -108,6 +108,10 @@ __END__
 
 Sub::Override - Perl extension for easily overriding subroutines
 
+=head1 VERSION
+
+0.09
+
 =head1 SYNOPSIS
 
   use Sub::Override;
@@ -143,7 +147,7 @@ This has a few problems.
    # do something
  }
 
-In the above example, not only have we probably mispelled the subroutine name,
+In the above example, not only have we probably misspelled the subroutine name,
 but even if their had been a subroutine with that name, we haven't overridden
 it.  These two bugs can be subtle to detect.
 
@@ -176,6 +180,11 @@ programmer to chain the calls, if this style of programming is preferred:
   $override->replace('Some::sub1', sub { 'new data1' })
            ->replace('Some::sub2', sub { 'new data2' })
            ->replace('Some::sub3', sub { 'new data3' });
+
+If the subroutine has a prototype, the new subroutine should be declared with
+same prototype as original one:
+
+  $override->replace('Some::sub_with_proto', sub ($$) { ($_[0], $_ [1]) });
 
 A subroutine may be replaced as many times as desired.  This is most useful
 when testing how code behaves with multiple conditions.
