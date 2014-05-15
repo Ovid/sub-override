@@ -156,6 +156,48 @@ This method will `croak` is the subroutine to be replaced does not exist.
 
 `override` is an alternate name for `replace`.  They are the same method.
 
+## get\_call\_count
+
+    my $sub = Sub::Override->new($sub_name, $sub_body);
+    my $call_count = $sub->get_call_count($sub_name);
+
+`get_call_count` returns the number of times the overridden sub has been called.
+
+This method will `croak` if the subroutine mentioned does not exist.
+
+## get\_call\_args
+
+    my $sub = Sub::Override->new($sub_name, $sub_body);
+    my $array_of_args_ref = $sub->get_call_args($sub_name);
+
+`get_call_args` returns an array ref containing an array ref of the arguments
+passed to each call of the overridden sub. If no arguments were passed to a call
+then a reference to an empty array is returned for the call.
+
+You can also specify a single call's arguments to be returned by specifying
+which call to look at using a 1-based index value:
+
+    my $array_ref = $sub->get_call_args($sub_name, 3);
+
+This method will `croak` if the subroutine mentioned does not exist.
+
+## get\_return\_values
+
+    my $sub = Sub::Override->new($sub_name, $sub_body);
+    my $array_of_return_values_ref = $sub->get_return_values($sub_name);
+
+`get_return_values` returns an array ref containing the return values from each
+call of the overridden sub. Each element in the array ref will be either a
+scalar or array ref depending on what was requested as the return value (based
+on the value of wantarray).
+
+You can also specify a single call's return values to be returned by specifying
+which call to look at using a 1-based index value:
+
+    my $return_value = $sub->get_return_values($sub_name, 3);
+
+This method will `croak` if the subroutine mentioned does not exist.
+
 ## restore
 
     $sub->restore($sub_name);
@@ -189,4 +231,3 @@ Copyright (C) 2004-2005 by Curtis "Ovid" Poe
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.2 or,
 at your option, any later version of Perl 5 you may have available.
-

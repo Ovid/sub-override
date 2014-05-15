@@ -66,9 +66,24 @@ sub replace {
     $self->$_validate_code_slot($sub_to_replace)->$_validate_sub_ref($new_sub);
     {
         no strict 'refs';
-        $self->{$sub_to_replace} ||= *$sub_to_replace{CODE};
+        $self->{$sub_to_replace}->{code} ||= *$sub_to_replace{CODE};
         no warnings 'redefine';
-        *$sub_to_replace = $new_sub;
+#        *$sub_to_replace = $new_sub;
+        my $stats_ref = $self->{$sub_to_replace};
+
+        *$sub_to_replace = sub { 
+            $stats_ref->{call_count}++;
+            push @{ $stats_ref->{call_args} }, [ @_ ];
+            if ( wantarray ) {
+                my( @return_values ) = &$new_sub(@_);
+                push @{ $stats_ref->{return_values} }, \@return_values;
+                return @return_values;
+            }
+
+            my $return_value = scalar &$new_sub(@_);
+            push @{ $stats_ref->{return_values} }, $return_value;
+            return $return_value;
+        };
     }
     return $self;
 }
@@ -87,8 +102,64 @@ sub restore {
       unless exists $self->{$name_of_sub};
     no strict 'refs';
     no warnings 'redefine';
-    *$name_of_sub = delete $self->{$name_of_sub};
+    *$name_of_sub = $self->{$name_of_sub}->{code};
+    delete $self->{$name_of_sub};
+
     return $self;
+}
+
+sub get_call_count {
+    my ( $self, $name_of_sub ) = @_;
+    $name_of_sub = $self->$_normalize_sub_name($name_of_sub);
+
+    $self->$_croak( 'You must provide the name of a sub for a get_call_count' )
+        unless $name_of_sub;
+
+    $self->$_croak("Can only provide call counts for overridden subs ($name_of_sub)")
+      unless exists $self->{$name_of_sub};
+
+    return $self->{$name_of_sub}->{call_count} || 0;
+}
+
+sub get_call_args {
+    my ( $self, $name_of_sub, $which_call ) = @_;
+    $name_of_sub = $self->$_normalize_sub_name($name_of_sub);
+
+    $self->$_croak( 'You must provide the name of a sub for get_call_args' )
+        unless $name_of_sub;
+
+    $self->$_croak("Can only provide call args for overridden subs ($name_of_sub)")
+      unless exists $self->{$name_of_sub};
+
+    if ( defined $which_call ) {
+        $self->$_croak( 'Cannot provide args for a call not made' )
+            unless exists $self->{$name_of_sub}->{call_args}->[$which_call-1];
+
+        return $self->{$name_of_sub}->{call_args}->[$which_call-1];
+    }
+
+    return $self->{$name_of_sub}->{call_args} || [];
+}
+
+sub get_return_values
+{
+    my ( $self, $name_of_sub, $which_call ) = @_;
+    $name_of_sub = $self->$_normalize_sub_name($name_of_sub);
+
+    $self->$_croak( 'You must provide the name of a sub for get_return_values' )
+        unless $name_of_sub;
+
+    $self->$_croak("Can only provide return values for overridden subs ($name_of_sub)")
+      unless exists $self->{$name_of_sub};
+
+    if ( defined $which_call ) {
+        $self->$_croak( 'Cannot provide return values for a call not made' )
+            unless exists $self->{$name_of_sub}->{return_values}->[$which_call-1];
+
+        return $self->{$name_of_sub}->{return_values}->[$which_call-1];
+    }
+
+    return $self->{$name_of_sub}->{return_values} || [];
 }
 
 sub DESTROY {
@@ -96,7 +167,7 @@ sub DESTROY {
     no strict 'refs';
     no warnings 'redefine';
     while ( my ( $sub_name, $sub_ref ) = each %$self ) {
-        *$sub_name = $sub_ref;
+        *$sub_name = $sub_ref->{code};
     }
 }
 
@@ -261,6 +332,48 @@ This method will C<croak> is the subroutine to be replaced does not exist.
  $sub->override($sub_name, $sub_body);
 
 C<override> is an alternate name for C<replace>.  They are the same method.
+
+=head2 get_call_count
+
+ my $sub = Sub::Override->new($sub_name, $sub_body);
+ my $call_count = $sub->get_call_count($sub_name);
+
+C<get_call_count> returns the number of times the overridden sub has been called.
+
+This method will C<croak> if the subroutine mentioned does not exist.
+
+=head2 get_call_args
+
+ my $sub = Sub::Override->new($sub_name, $sub_body);
+ my $array_of_args_ref = $sub->get_call_args($sub_name);
+
+C<get_call_args> returns an array ref containing an array ref of the arguments
+passed to each call of the overridden sub. If no arguments were passed to a call
+then a reference to an empty array is returned for the call.
+
+You can also specify a single call's arguments to be returned by specifying
+which call to look at using a 1-based index value:
+
+ my $array_ref = $sub->get_call_args($sub_name, 3);
+
+This method will C<croak> if the subroutine mentioned does not exist.
+
+=head2 get_return_values
+
+ my $sub = Sub::Override->new($sub_name, $sub_body);
+ my $array_of_return_values_ref = $sub->get_return_values($sub_name);
+
+C<get_return_values> returns an array ref containing the return values from each
+call of the overridden sub. Each element in the array ref will be either a
+scalar or array ref depending on what was requested as the return value (based
+on the value of wantarray).
+
+You can also specify a single call's return values to be returned by specifying
+which call to look at using a 1-based index value:
+
+ my $return_value = $sub->get_return_values($sub_name, 3);
+
+This method will C<croak> if the subroutine mentioned does not exist.
 
 =cut
 
