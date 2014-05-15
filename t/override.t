@@ -1,8 +1,8 @@
 #!/usr/local/bin/perl -w
 use strict;
 
-#use Test::More 'no_plan';
-use Test::More tests => 28;
+use Test::More 'no_plan';
+#use Test::More tests => 29;
 use Test::Fatal;
 
 my $CLASS;
@@ -47,9 +47,92 @@ like
 ok( $override->replace( 'Foo::bar', sub {'new subroutine'} ),
     '... and replacing a subroutine should succeed'
 );
+
+can_ok( $override, 'get_call_count' );
+
+is( $override->get_call_count( 'Foo::bar' ), 0,
+    '... 0 call count for overridden method'
+);
+
+like
+    exception { $override->get_call_count },
+    qr/^\QYou must provide the name of a sub for a get_call_count/,
+    '... but we must explicitly provide the sub name for a get_call_count';
+
+like
+    exception { $override->get_call_count( 'Foo::none' ) },
+    qr/^\QCan only provide call counts for overridden subs/,
+    '... and it should fail if the subroutine had not been replaced';
+
 is( Foo::bar(), 'new subroutine',
     '... and the subroutine should exhibit the new behavior'
 );
+
+is( $override->get_call_count( 'Foo::bar' ), 1,
+    '... 1 call count for overridden method'
+);
+
+can_ok( $override, 'get_call_args' );
+
+can_ok( $override, 'get_return_values' );
+
+like
+    exception { $override->get_call_args },
+    qr/^\QYou must provide the name of a sub for get_call_args/,
+    '... but we must explicitly provide the sub name for get_call_args';
+
+like
+    exception { $override->get_call_args( 'Foo::none' ) },
+    qr/^\QCan only provide call args for overridden subs/,
+    '... and it should fail if the subroutine had not been replaced';
+
+
+is_deeply( $override->get_call_args( 'Foo::bar' ), [ [] ], '... and should have just the first call\'s args available' );
+
+is_deeply( $override->get_return_values( 'Foo::bar' ), [ 'new subroutine' ], '... and just the first call\'s return values' );
+
+Foo::bar( 'some arg' );
+
+is_deeply(
+    $override->get_call_args( 'Foo::bar' ),
+    [ [], ['some arg']],
+    '... and after a second call, have 2 sets of args' );
+
+is_deeply(
+    $override->get_return_values( 'Foo::bar' ),
+    [ 'new subroutine', 'new subroutine' ],
+    '... and 2 sets of return values' );
+
+is_deeply(
+    $override->get_call_args( 'Foo::bar', 2 ),
+    ['some arg'],
+    '... and just the 2nd call\'s args' );
+
+is_deeply(
+    $override->get_return_values( 'Foo::bar', 2 ),
+    'new subroutine',
+    '... and just the 2nd call\'s return values' );
+
+like
+    exception { $override->get_call_args( 'Foo::bar', 3 ) },
+    qr/^\QCannot provide args for a call not made/,
+    '... but we must specify a call number within the get_call_args';
+
+like
+    exception { $override->get_return_values( 'Foo::bar', 3 ) },
+    qr/^\QCannot provide return values for a call not made/,
+    '... but we must specify a call number within the get_call_args';
+
+like
+    exception { $override->get_return_values },
+    qr/^\QYou must provide the name of a sub for get_return_values/,
+    '... but we must explicitly provide the sub name for get_return_values';
+
+like
+    exception { $override->get_return_values( 'Foo::none' ) },
+    qr/^\QCan only provide return values for overridden subs/,
+    '... and it should fail if the subroutine had not been replaced';
+
 
 ok( $override->replace( 'Foo::bar' => sub {'new subroutine 2'} ),
     '... and we should be able to replace a sub more than once'
