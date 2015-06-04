@@ -286,10 +286,10 @@ Probably.  Tell me about 'em.
 =over 4
 
 =item *
-Hook::LexWrap -- can also override subs, but with different capabilities
+L<Hook::LexWrap> -- can also override subs, but with different capabilities
 
 =item *
-Test::MockObject -- use this if you need to alter an entire class
+L<Test::MockObject> -- use this if you need to alter an entire class
 
 =back
 
