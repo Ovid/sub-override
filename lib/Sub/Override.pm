@@ -297,8 +297,6 @@ L<Test::MockObject> -- use this if you need to alter an entire class
 
 Curtis "Ovid" Poe, C<< <ovid [at] cpan [dot] org> >>
 
-Reverse the name to email me.
-
 =head1 COPYRIGHT AND LICENSE
 
 Copyright (C) 2004-2005 by Curtis "Ovid" Poe
