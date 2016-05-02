@@ -240,7 +240,7 @@ current package.
   my $sub = Sub::Override->new;
   my $sub = Sub::Override->new($sub_name, $sub_ref);
 
-Creates a new C<Sub::Override> instance.  Optionally, you may override a 
+Creates a new C<Sub::Override> instance.  Optionally, you may override a
 subroutine while creating a new object.
 
 =head2 replace
