@@ -129,7 +129,7 @@ Sub::Override - Perl extension for easily overriding subroutines
 =head2 The Problem
 
 Sometimes subroutines need to be overridden.  In fact, your author does this
-constantly for tests.  Particularly when testing, using a Mock Object can be
+frequently for tests.  Particularly when testing, using a Mock Object can be
 overkill when all you want to do is override one tiny, little function.
 
 Overriding a subroutine is often done with syntax similar to the following.
