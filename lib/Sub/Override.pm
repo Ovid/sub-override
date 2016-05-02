@@ -322,11 +322,10 @@ Curtis "Ovid" Poe, C<< <ovid [at] cpan [dot] org> >>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2004-2005 by Curtis "Ovid" Poe
+Copyright (C) 2004-2013 by Curtis "Ovid" Poe
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.8.2 or,
 at your option, any later version of Perl 5 you may have available.
-
 
 =cut
