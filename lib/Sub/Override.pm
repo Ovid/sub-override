@@ -198,7 +198,7 @@ when testing how code behaves with multiple conditions.
 =head2 Restoring subroutines
 
 If the object falls out of scope, the original subs are restored.  However, if
-you need to restore a subroutine early, just use the restore method:
+you need to restore a subroutine early, just use the C<restore()> method:
 
   my $override = Sub::Override->new('Some::sub', sub {'new data'});
   # do stuff
