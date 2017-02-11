@@ -211,7 +211,7 @@ Which is somewhat equivalent to:
     # do stuff
   }
 
-If you have override more than one subroutine with an override object, you
+If you have overridden more than one subroutine with an override object, you
 will have to explicitly name the subroutine you wish to restore:
 
   $override->restore('This::sub');
