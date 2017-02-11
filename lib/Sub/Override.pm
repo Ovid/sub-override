@@ -277,6 +277,29 @@ automatically if the C<Sub::Override> object falls out of scope.
 
 None by default.
 
+=head1 CAVEATS
+
+If you need to override the same sub several times do not create a new
+C<Sub::Override> object, but instead always reuse the existing one and call 
+C<replace> on it. Creating a new object to override the same sub will result
+in weird behavior.
+
+ # Do not do this!
+ my $sub_first = Sub::Override->new( 'Foo:bar' => sub { 'first' } );
+ my $sub_second = Sub::Override->new( 'Foo::bar' => sub { 'second' } );
+
+ # Do not do this either!
+ my $sub = Sub::Override->new( 'Foo::bar' => sub { 'first' } );
+ $sub = Sub::Override->new( 'Foo::bar' => sub { 'second' } );
+ 
+Both of those usages could result in of your subs being lost, depending
+on the order in which you restore them.
+
+Instead, call C<replace> on the existing C<$sub>.
+
+ my $sub = Sub::Override->new( 'Foo::bar' => sub { 'first' } );
+ $sub->replace( 'Foo::bar' => sub { 'second' } );
+
 =head1 BUGS
 
 Probably.  Tell me about 'em.
