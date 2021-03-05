@@ -42,7 +42,7 @@ This has a few problems.
     }
 
 In the above example, not only have we probably misspelled the subroutine name,
-but even if their had been a subroutine with that name, we haven't overridden
+but even if there had been a subroutine with that name, we haven't overridden
 it.  These two bugs can be subtle to detect.
 
 Further, if we're attempting to localize the effect by placing this code in a
