@@ -73,6 +73,19 @@ sub replace {
     return $self;
 }
 
+sub wrap {
+    my ( $self, $sub_to_replace, $new_sub ) = @_;
+    $sub_to_replace = $self->$_normalize_sub_name($sub_to_replace);
+    $self->$_validate_code_slot($sub_to_replace)->$_validate_sub_ref($new_sub);
+    {
+        no strict 'refs';
+        $self->{$sub_to_replace} ||= *$sub_to_replace{CODE};
+        no warnings 'redefine';
+        *$sub_to_replace = sub { $new_sub->( $self->{$sub_to_replace}, @_ ) };
+    }
+    return $self;
+}
+
 sub restore {
     my ( $self, $name_of_sub ) = @_;
     $name_of_sub = $self->$_normalize_sub_name($name_of_sub);
@@ -194,6 +207,22 @@ when testing how code behaves with multiple conditions.
 
   $override->replace('Some::thing', sub { 1 });
   is($object->foo, 'puppies', 'puppies are returned if Some::thing is true');
+
+=head2 Wrapping a subroutine
+
+There may be times when you want to 'conditionally' replace a subroutine - for
+example, to override the original subroutine only if certain args are passed.
+For this you can specify 'wrap' instead of 'replace'. Wrap is identical to
+replace, except the original subroutine is passed as the first arg to your
+new subroutine. You can call the original sub via 'shift->(@_)':
+
+  $override->wrap('Some::sub',
+    sub {
+      my ($old_sub, @args) = @_;
+      return 1 if $args[0];
+      return $old_sub->(@args);
+    }
+  );
 
 =head2 Restoring subroutines
 
