@@ -3,7 +3,7 @@ package Sub::Override;
 use strict;
 use warnings;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 my $_croak = sub {
     local *__ANON__ = '__ANON__croak';
@@ -123,7 +123,7 @@ Sub::Override - Perl extension for easily overriding subroutines
 
 =head1 VERSION
 
-0.09
+0.10
 
 =head1 SYNOPSIS
 
