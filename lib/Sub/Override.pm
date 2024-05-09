@@ -56,9 +56,12 @@ sub new {
     return $self;
 }
 
-# because override() was a better name and this is what it should have been
-# called.
-*override = *replace{CODE};
+{
+    no warnings 'once';
+    # because override() was a better name and this is what it should have been
+    # called.
+    *override = *replace{CODE};
+}
 
 sub replace {
     my ( $self, $sub_to_replace, $new_sub ) = @_;
@@ -309,7 +312,7 @@ None by default.
 =head1 CAVEATS
 
 If you need to override the same sub several times do not create a new
-C<Sub::Override> object, but instead always reuse the existing one and call 
+C<Sub::Override> object, but instead always reuse the existing one and call
 C<replace> on it. Creating a new object to override the same sub will result
 in weird behavior.
 
@@ -320,7 +323,7 @@ in weird behavior.
  # Do not do this either!
  my $sub = Sub::Override->new( 'Foo::bar' => sub { 'first' } );
  $sub = Sub::Override->new( 'Foo::bar' => sub { 'second' } );
- 
+
 Both of those usages could result in of your subs being lost, depending
 on the order in which you restore them.
 
