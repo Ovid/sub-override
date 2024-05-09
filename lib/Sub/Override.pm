@@ -3,6 +3,8 @@ package Sub::Override;
 use strict;
 use warnings;
 
+use Sub::Prototype qw(set_prototype);
+
 our $VERSION = '0.10';
 
 my $_croak = sub {
@@ -83,8 +85,11 @@ sub wrap {
     {
         no strict 'refs';
         $self->{$sub_to_replace} ||= *$sub_to_replace{CODE};
+        my $code =  sub { $new_sub->( $self->{$sub_to_replace}, @_ ) };
+        my $prototype = prototype($new_sub);
+        set_prototype($code, $prototype) if defined $prototype;
         no warnings 'redefine';
-        *$sub_to_replace = sub { $new_sub->( $self->{$sub_to_replace}, @_ ) };
+        *$sub_to_replace = $code;
     }
     return $self;
 }

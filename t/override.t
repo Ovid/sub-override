@@ -2,7 +2,7 @@
 use strict;
 
 #use Test::More 'no_plan';
-use Test::More tests => 33;
+use Test::More tests => 37;
 use Test::Fatal;
 
 my $CLASS;
@@ -143,6 +143,7 @@ can_ok( $override, 'wrap' );
 
     package TempWrap;
     sub foo {23}
+    sub bar ($$) {$_[0] + $_[1]}
 
     my $override = $CLASS->new;
 
@@ -157,4 +158,16 @@ can_ok( $override, 'wrap' );
 
     $override->restore('foo');
     main::is( foo(1), 23, '... and we can restore a wrapped subroutine' );
+
+    main::ok( $override->wrap( 'bar',
+        sub ($$) {
+            my ($orig, @args) = @_;
+            return $args[0] == 4 && $args[1] == 2 ? 42 : $orig->(@args);
+        }
+    ), '... and we should be able to successfully wrap a prototyped subroutine' );
+    main::is( bar(5,2),  7,  '... and wrapped prototyped sub bar conditionally returns original value' );
+    main::is( bar(4,2),  42, '... and wrapped prototyped sub bar conditionally returns override value' );
+
+    $override->restore('bar');
+    main::is( bar(4,2), 6, '... and we can restore a wrapped subroutine' );
 }
