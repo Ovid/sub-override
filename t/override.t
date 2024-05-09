@@ -126,7 +126,7 @@ is( Foo::bar(), 'original value',
     sub foo {23}
     sub bar {42}
 
-    my $override = Sub::Override->new( 'foo', sub {42} );
+    my $override = $CLASS->new( 'foo', sub {42} );
     $override->replace( 'bar', sub {'barbar'} );
     main::is( foo(), 42,
         'Not fully qualifying a sub name will assume the current package' );
