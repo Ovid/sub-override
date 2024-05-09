@@ -1,7 +1,6 @@
-#!/usr/local/bin/perl -w
 use strict;
+use warnings;
 
-#use Test::More 'no_plan';
 use Test::More tests => 37;
 use Test::Fatal;
 
