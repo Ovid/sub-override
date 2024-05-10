@@ -86,7 +86,7 @@ sub wrap {
         no strict 'refs';
         $self->{$sub_to_replace} ||= *$sub_to_replace{CODE};
         my $code =  sub { $new_sub->( $self->{$sub_to_replace}, @_ ) };
-        my $prototype = prototype($new_sub);
+        my $prototype = prototype($self->{$sub_to_replace});
         set_prototype($code, $prototype) if defined $prototype;
         no warnings 'redefine';
         *$sub_to_replace = $code;

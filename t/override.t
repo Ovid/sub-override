@@ -159,7 +159,7 @@ can_ok( $override, 'wrap' );
     main::is( foo(1), 23, '... and we can restore a wrapped subroutine' );
 
     main::ok( $override->wrap( 'bar',
-        sub ($$) {
+        sub {
             my ($orig, @args) = @_;
             return $args[0] == 4 && $args[1] == 2 ? 42 : $orig->(@args);
         }
