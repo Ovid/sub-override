@@ -220,8 +220,8 @@ when testing how code behaves with multiple conditions.
 
 There may be times when you want to 'conditionally' replace a subroutine - for
 example, to override the original subroutine only if certain args are passed.
-For this you can specify 'wrap' instead of 'replace'. Wrap is identical to
-replace, except the original subroutine is passed as the first arg to your
+For this you can specify C<wrap> instead of C<replace>. C<wrap> is identical to
+C<replace>, except the original subroutine is passed as the first arg to your
 new subroutine. You can call the original sub via 'shift->(@_)':
 
   $override->wrap('Some::sub',
@@ -299,8 +299,6 @@ This method will C<croak> if the subroutine to be replaced does not exist.
 
 C<override> is an alternate name for C<replace>.  They are the same method.
 
-=cut
-
 =head2 restore
 
  $sub->restore($sub_name);
@@ -308,7 +306,12 @@ C<override> is an alternate name for C<replace>.  They are the same method.
 Restores the previous behavior of the subroutine.  This will happen
 automatically if the C<Sub::Override> object falls out of scope.
 
-=cut
+=head2 wrap
+
+ $sub->wrap($sub_name, $sub_body);
+
+Temporarily wraps a subroutine with another subroutine. The original subroutine
+is passed as the first arg to the new subroutine.
 
 =head1 EXPORT
 
