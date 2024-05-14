@@ -5,7 +5,7 @@ use warnings;
 
 use Sub::Prototype qw(set_prototype);
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 my $_croak = sub {
     local *__ANON__ = '__ANON__croak';
@@ -131,7 +131,7 @@ Sub::Override - Perl extension for easily overriding subroutines
 
 =head1 VERSION
 
-0.10
+0.11
 
 =head1 SYNOPSIS
 
