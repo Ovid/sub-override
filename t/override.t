@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 37;
+use Test::More;
 use Test::Fatal;
 
 my $CLASS;
@@ -170,3 +170,34 @@ can_ok( $override, 'wrap' );
     $override->restore('bar');
     main::is( bar(4,2), 6, '... and we can restore a wrapped subroutine' );
 }
+
+can_ok( $override, 'inject' );
+
+{
+
+    package TempInject;
+    sub foo      { 23 }
+    sub bar ($$) { $_[0] + $_[1] }
+
+    my $override = $CLASS->new;
+
+    main::like
+      main::exception { $override->inject( 'foo', '' ) },
+      qr/\QCannot inject on top of an existing sub (TempInject::foo)/,
+      '... and we should not be able to inject subs over existing subs';
+
+    main::ok(
+        $override->inject( 'something', sub { 42 } ),
+        '... but injecting a subroutine should succeed'
+    );
+    main::is( TempInject::something(), 42,
+        '... and we should be able to call the new function' );
+
+    $override->restore('something');
+    main::like
+      main::exception { TempInject::something() },
+      qr/\QUndefined subroutine &TempInject::something called\E/,
+      '... and we should be able to restore the original behavior';
+}
+
+done_testing;
