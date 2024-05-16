@@ -75,11 +75,6 @@ programmer to chain the calls, if this style of programming is preferred:
              ->replace('Some::sub2', sub { 'new data2' })
              ->replace('Some::sub3', sub { 'new data3' });
 
-If the subroutine has a prototype, the new subroutine should be declared with
-same prototype as original one:
-
-    $override->replace('Some::sub_with_proto', sub ($$) { ($_[0], $_ [1]) });
-
 A subroutine may be replaced as many times as desired.  This is most useful
 when testing how code behaves with multiple conditions.
 
