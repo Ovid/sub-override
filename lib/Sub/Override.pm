@@ -3,7 +3,7 @@ package Sub::Override;
 use strict;
 use warnings;
 
-use Sub::Prototype qw(set_prototype);
+use Sub::Util qw(set_prototype);
 
 our $VERSION = '0.12';
 
@@ -83,7 +83,7 @@ sub replace {
         no strict 'refs';
         $self->{$sub_to_replace} ||= *$sub_to_replace{CODE};
         my $prototype = prototype($self->{$sub_to_replace});
-        set_prototype($new_sub, $prototype) if defined $prototype;
+        set_prototype($prototype, $new_sub) if defined $prototype;
         no warnings 'redefine';
         *$sub_to_replace = $new_sub;
     }
@@ -112,7 +112,7 @@ sub wrap {
         $self->{$sub_to_replace} ||= *$sub_to_replace{CODE};
         my $code =  sub { unshift @_, $self->{$sub_to_replace}; goto &$new_sub };
         my $prototype = prototype($self->{$sub_to_replace});
-        set_prototype($code, $prototype) if defined $prototype;
+        set_prototype($prototype, $code) if defined $prototype;
         no warnings 'redefine';
         *$sub_to_replace = $code;
     }
