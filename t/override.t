@@ -124,6 +124,7 @@ is( Foo::bar(), 'original value',
     package TempReplace;
     sub foo {23}
     sub bar {42}
+    sub baz ($$) {$_[0] + $_[1]}
 
     my $override = $CLASS->new( 'foo', sub {42} );
     $override->replace( 'bar', sub {'barbar'} );
@@ -134,6 +135,11 @@ is( Foo::bar(), 'original value',
 
     $override->restore('TempReplace::bar');
     main::is( bar(), 42, '... even if we use a full qualified sub name' );
+
+    $override->replace( 'baz', sub {$_[0] . $_[1]} );
+    main::is( baz(4,2), 42, 'Replace prototyped sub' );
+    $override->restore('baz');
+    main::is( baz(4,2), 6, '... and we should be able to restore said sub' );
 }
 
 can_ok( $override, 'wrap' );

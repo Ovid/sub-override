@@ -7,9 +7,9 @@ WriteMakefile(
     NAME         => 'Sub::Override',
     VERSION_FROM => 'lib/Sub/Override.pm',    # finds $VERSION
     PREREQ_PM    => {
-        'Sub::Prototype' => '0.02',
-        'Test::More'     => .47,
-        'Test::Fatal'    => '0.010',
+        'Scalar::Util' => '1.11',
+        'Test::More'   => .47,
+        'Test::Fatal'  => '0.010',
     },
     (   $] >= 5.005
         ? ( ABSTRACT_FROM => 'lib/Sub/Override.pm',
