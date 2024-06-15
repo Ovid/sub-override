@@ -5,7 +5,7 @@ use warnings;
 
 use Scalar::Util qw(set_prototype);
 
-our $VERSION = '0.11';
+our $VERSION = '0.12';
 
 my $_croak = sub {
     local *__ANON__ = '__ANON__croak';
@@ -14,12 +14,22 @@ my $_croak = sub {
     Carp::croak($message);
 };
 
-my $_validate_code_slot = sub {
-    local *__ANON__ = '__ANON__validate_code_slot';
+my $_ensure_code_slot_exists = sub {
+    local *__ANON__ = '__ANON__ensure_code_slot_exists';
     my ( $self, $code_slot ) = @_;
     no strict 'refs';
     unless ( defined *{$code_slot}{CODE} ) {
         $self->$_croak("Cannot replace non-existent sub ($code_slot)");
+    }
+    return $self;
+};
+
+my $_ensure_code_slot_does_not_exist = sub {
+    local *__ANON__ = '__ANON__ensure_code_slot_does_not_exist';
+    my ( $self, $code_slot ) = @_;
+    no strict 'refs';
+    if ( defined *{$code_slot}{CODE} ) {
+        $self->$_croak("Cannot inject on top of an existing sub ($code_slot)");
     }
     return $self;
 };
@@ -68,7 +78,7 @@ sub new {
 sub replace {
     my ( $self, $sub_to_replace, $new_sub ) = @_;
     $sub_to_replace = $self->$_normalize_sub_name($sub_to_replace);
-    $self->$_validate_code_slot($sub_to_replace)->$_validate_sub_ref($new_sub);
+    $self->$_ensure_code_slot_exists($sub_to_replace)->$_validate_sub_ref($new_sub);
     {
         no strict 'refs';
         $self->{$sub_to_replace} ||= *$sub_to_replace{CODE};
@@ -78,10 +88,23 @@ sub replace {
     return $self;
 }
 
+sub inject {
+    my ( $self, $sub_to_inject, $new_sub ) = @_;
+    $sub_to_inject = $self->$_normalize_sub_name($sub_to_inject);
+    $self->$_ensure_code_slot_does_not_exist($sub_to_inject)->$_validate_sub_ref($new_sub);
+    {
+        no strict 'refs';
+        $self->{$sub_to_inject} = undef;
+        no warnings 'redefine';
+        *$sub_to_inject = $new_sub;
+    }
+    return $self;
+}
+
 sub wrap {
     my ( $self, $sub_to_replace, $new_sub ) = @_;
     $sub_to_replace = $self->$_normalize_sub_name($sub_to_replace);
-    $self->$_validate_code_slot($sub_to_replace)->$_validate_sub_ref($new_sub);
+    $self->$_ensure_code_slot_exists($sub_to_replace)->$_validate_sub_ref($new_sub);
     {
         no strict 'refs';
         $self->{$sub_to_replace} ||= *$sub_to_replace{CODE};
@@ -108,16 +131,28 @@ sub restore {
       unless exists $self->{$name_of_sub};
     no strict 'refs';
     no warnings 'redefine';
-    *$name_of_sub = delete $self->{$name_of_sub};
+    my $maybe_sub_ref = delete $self->{$name_of_sub};
+    if ( defined $maybe_sub_ref ) {
+        *$name_of_sub = $maybe_sub_ref;
+    }
+    else {
+        undef *$name_of_sub;
+    }
     return $self;
 }
 
 sub DESTROY {
     my $self = shift;
     no strict 'refs';
-    no warnings 'redefine';
-    while ( my ( $sub_name, $sub_ref ) = each %$self ) {
-        *$sub_name = $sub_ref;
+    # "misc" suppresses warning: 'Undefined value assigned to typeglob'
+    no warnings 'redefine', 'misc';
+    while ( my ( $sub_name, $maybe_sub_ref ) = each %$self ) {
+        if ( defined $maybe_sub_ref ) {
+            *$sub_name = $maybe_sub_ref;
+        }
+        else {
+            undef *$sub_name;
+        }
     }
 }
 
@@ -216,6 +251,31 @@ when testing how code behaves with multiple conditions.
   $override->replace('Some::thing', sub { 1 });
   is($object->foo, 'puppies', 'puppies are returned if Some::thing is true');
 
+=head2 Injecting a subroutine
+
+If you want to inject a subroutine into a package, you can use the C<inject()>
+method. This is identical to C<replace()>, except that it requires that the
+subroutine does not exist:
+
+  $override->inject('Some::sub', sub {'new data'});
+
+This is useful if you want to add a subroutine to a package that doesn't
+already have it.
+
+  $override->inject('Some::sub', sub {'new data'});
+
+If you attempt to inject a subroutine that already exists, an exception will be
+thrown.
+
+  $override->inject('Some::sub', sub {'new data'}); # works
+  $override->inject('Some::sub', sub {'new data'}); # throws an exception
+
+Calling C<restore()> or allowing the C<$override> to go out of scope will
+remove the injected subroutine.
+
+  $override->inject('Some::sub', sub {'new data'});
+  $override->restore('Some::sub'); # removes the injected subroutine
+
 =head2 Wrapping a subroutine
 
 There may be times when you want to 'conditionally' replace a subroutine - for
@@ -299,6 +359,16 @@ This method will C<croak> if the subroutine to be replaced does not exist.
 
 C<override> is an alternate name for C<replace>.  They are the same method.
 
+=head2 inject
+
+ $sub->inject($sub_name, $sub_body);
+
+Temporarily injects a subroutine into a package.  Returns the instance, so
+chaining the method is allowed:
+
+ $sub->inject($sub_name, $sub_body)
+     ->inject($another_sub, $another_body);
+
 =head2 restore
 
  $sub->restore($sub_name);
@@ -355,6 +425,10 @@ L<Hook::LexWrap> -- can also override subs, but with different capabilities
 L<Test::MockObject> -- use this if you need to alter an entire class
 
 =back
+
+=head1 MAINTAINER
+
+Robin Murray (mvsjes2 on github)
 
 =head1 AUTHOR
 
