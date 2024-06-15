@@ -183,7 +183,7 @@ can_ok( $override, 'inject' );
 
     main::like
       main::exception { $override->inject( 'foo', '' ) },
-      qr/\QCannot inject on top of an existing sub (TempInject::foo)/,
+      qr/\QCannot inject or inherit over an existing sub (TempInject::foo)/,
       '... and we should not be able to inject subs over existing subs';
 
     main::ok(
@@ -198,6 +198,48 @@ can_ok( $override, 'inject' );
       main::exception { TempInject::something() },
       qr/\QUndefined subroutine &TempInject::something called\E/,
       '... and we should be able to restore the original behavior';
+}
+
+can_ok( $override, 'inherit' );
+
+{
+
+    package TempInheritParent;
+    sub foo { 'foo' }
+    sub bar { 'bar' }
+
+    package TempInheritChild;
+    our @ISA = qw(TempInheritParent);
+    sub foo { 'foo' }
+    sub baz { 'baz' }
+
+    my $override = $CLASS->new;
+
+    main::like
+      main::exception { $override->inherit( 'foo', sub { 'foo-override'; } ) },
+      qr/\QCannot inject or inherit over an existing sub (TempInheritChild::foo)/,
+      '... and we should not be able to inherit and existing inherited sub';
+
+    main::like
+      main::exception { $override->inherit( 'baz', sub { 'baz-override'; } ) },
+      qr/\QCannot inject or inherit over an existing sub (TempInheritChild::baz)/,
+      '... and we should not be able to inherit an existing sub';
+
+    main::like
+      main::exception { $override->inherit( 'foobarbaz', sub { 'foo-override'; } ) },
+      qr/\QCannot inherit from non-existent parent sub (TempInheritChild::foobarbaz)/,
+      '... and we should not be able to inherit a non-existing sub';
+
+    main::ok(
+      $override->inherit( 'bar', sub { 'bar-inherited' } ),
+      '... but inheriting a subroutine should succeed'
+    );
+    main::is( TempInheritChild->bar(), 'bar-inherited',
+      '... and we should be able to call the new function' );
+
+    $override->restore('bar');
+    main::is( TempInheritChild->bar(), 'bar',
+      '... and we should be able to restore the original behaviour' );
 }
 
 done_testing;

@@ -29,7 +29,21 @@ my $_ensure_code_slot_does_not_exist = sub {
     my ( $self, $code_slot ) = @_;
     no strict 'refs';
     if ( defined *{$code_slot}{CODE} ) {
-        $self->$_croak("Cannot inject on top of an existing sub ($code_slot)");
+        $self->$_croak("Cannot inject or inherit over an existing sub ($code_slot)");
+    }
+    return $self;
+};
+
+my $_ensure_code_slot_can_inherit = sub {
+    local *__ANON__ = '__ANON__ensure_code_slot_can_inherit';
+    my ( $self, $code_slot ) = @_;
+    $self->$_ensure_code_slot_does_not_exist($code_slot);
+    {
+        no strict 'refs';
+        my $class  = *{$code_slot}{PACKAGE};
+        my $method = *{$code_slot}{NAME};
+        $self->$_croak("Cannot inherit from non-existent parent sub ($code_slot)")
+            unless $class->can($method);
     }
     return $self;
 };
@@ -97,6 +111,19 @@ sub inject {
         $self->{$sub_to_inject} = undef;
         no warnings 'redefine';
         *$sub_to_inject = $new_sub;
+    }
+    return $self;
+}
+
+sub inherit {
+    my ( $self, $sub_to_inherit, $new_sub ) = @_;
+    $sub_to_inherit = $self->$_normalize_sub_name($sub_to_inherit);
+    $self->$_ensure_code_slot_can_inherit($sub_to_inherit)->$_validate_sub_ref($new_sub);
+    {
+        no strict 'refs';
+        $self->{$sub_to_inherit} = undef;
+        no warnings 'redefine';
+        *$sub_to_inherit = $new_sub;
     }
     return $self;
 }
@@ -262,8 +289,6 @@ subroutine does not exist:
 This is useful if you want to add a subroutine to a package that doesn't
 already have it.
 
-  $override->inject('Some::sub', sub {'new data'});
-
 If you attempt to inject a subroutine that already exists, an exception will be
 thrown.
 
@@ -275,6 +300,26 @@ remove the injected subroutine.
 
   $override->inject('Some::sub', sub {'new data'});
   $override->restore('Some::sub'); # removes the injected subroutine
+
+=head2 Inheriting a subroutine
+
+Similar to 'inject', 'inherit' will only allow you to create a new subroutine
+on a child object that inherits the routine from the parent, and doesn't
+exist in the child:
+
+  package Parent;
+  sub foo {}
+  sub bar {}
+
+  package Child;
+  use parent 'Parent';
+  sub foo {}
+
+'Inherit' will allow you to set up a new 'Child::bar' subroutine since it is
+inherited from Parent. Attempting to 'inherit' 'Child::foo' will result in an
+exception being thrown since 'foo' already exists in Child. Similarly,
+attempting to 'inherit' new subroutine 'something' in Child will also result
+in an exception since it doesn't exist in Parent and won't be inherited by Child.
 
 =head2 Wrapping a subroutine
 
@@ -368,6 +413,13 @@ chaining the method is allowed:
 
  $sub->inject($sub_name, $sub_body)
      ->inject($another_sub, $another_body);
+
+=head2 inherit
+
+ $sub->inherit($sub_name, $sub_body);
+
+Checks that the subroutine exists in a parent class, but not in the current
+class, and injects it into the current class to inherit the parent's version.
 
 =head2 restore
 
