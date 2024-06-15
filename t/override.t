@@ -167,6 +167,7 @@ can_ok( $override, 'wrap' );
     main::is( bar(5,2),  7,  '... and wrapped prototyped sub bar conditionally returns original value' );
     main::is( bar(4,2),  42, '... and wrapped prototyped sub bar conditionally returns override value' );
 
-    $override->restore('bar');
+    # make sure there are no left-over references preventing destroy from running.
+    undef $override;
     main::is( bar(4,2), 6, '... and we can restore a wrapped subroutine' );
 }
