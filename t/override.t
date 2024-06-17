@@ -184,7 +184,7 @@ can_ok( $override, 'inject' );
 
     main::like
       main::exception { $override->inject( 'foo', '' ) },
-      qr/\QCannot inject or inherit over an existing sub (TempInject::foo)/,
+      qr/\QCannot create a sub that already exists (TempInject::foo)/,
       '... and we should not be able to inject subs over existing subs';
 
     main::ok(
@@ -218,17 +218,17 @@ can_ok( $override, 'inherit' );
 
     main::like
       main::exception { $override->inherit( 'foo', sub { 'foo-override'; } ) },
-      qr/\QCannot inject or inherit over an existing sub (TempInheritChild::foo)/,
+      qr/\QCannot create a sub that already exists (TempInheritChild::foo)/,
       '... and we should not be able to inherit and existing inherited sub';
 
     main::like
       main::exception { $override->inherit( 'baz', sub { 'baz-override'; } ) },
-      qr/\QCannot inject or inherit over an existing sub (TempInheritChild::baz)/,
+      qr/\QCannot create a sub that already exists (TempInheritChild::baz)/,
       '... and we should not be able to inherit an existing sub';
 
     main::like
       main::exception { $override->inherit( 'foobarbaz', sub { 'foo-override'; } ) },
-      qr/\QCannot inherit from non-existent parent sub (TempInheritChild::foobarbaz)/,
+      qr/\QSub does not exist in parent class (TempInheritChild::foobarbaz)/,
       '... and we should not be able to inherit a non-existing sub';
 
     main::ok(

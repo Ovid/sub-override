@@ -3,77 +3,10 @@ package Sub::Override;
 use strict;
 use warnings;
 
+use Carp qw(croak);
 use Scalar::Util qw(set_prototype);
 
 our $VERSION = '0.12';
-
-my $_croak = sub {
-    local *__ANON__ = '__ANON__croak';
-    my ( $proto, $message ) = @_;
-    require Carp;
-    Carp::croak($message);
-};
-
-my $_ensure_code_slot_exists = sub {
-    local *__ANON__ = '__ANON__ensure_code_slot_exists';
-    my ( $self, $code_slot ) = @_;
-    no strict 'refs';
-    unless ( defined *{$code_slot}{CODE} ) {
-        $self->$_croak("Cannot replace non-existent sub ($code_slot)");
-    }
-    return $self;
-};
-
-my $_ensure_code_slot_does_not_exist = sub {
-    local *__ANON__ = '__ANON__ensure_code_slot_does_not_exist';
-    my ( $self, $code_slot ) = @_;
-    no strict 'refs';
-    if ( defined *{$code_slot}{CODE} ) {
-        $self->$_croak("Cannot inject or inherit over an existing sub ($code_slot)");
-    }
-    return $self;
-};
-
-my $_ensure_code_slot_can_inherit = sub {
-    local *__ANON__ = '__ANON__ensure_code_slot_can_inherit';
-    my ( $self, $code_slot ) = @_;
-    $self->$_ensure_code_slot_does_not_exist($code_slot);
-    {
-        no strict 'refs';
-        my $class  = *{$code_slot}{PACKAGE};
-        my $method = *{$code_slot}{NAME};
-        $self->$_croak("Cannot inherit from non-existent parent sub ($code_slot)")
-            unless $class->can($method);
-    }
-    return $self;
-};
-
-my $_validate_sub_ref = sub {
-    local *__ANON__ = '__ANON__validate_sub_ref';
-    my ( $self, $sub_ref ) = @_;
-    unless ( 'CODE' eq ref $sub_ref ) {
-        $self->$_croak("($sub_ref) must be a code reference");
-    }
-    return $self;
-};
-
-my $_normalize_sub_name = sub {
-    local *__ANON__ = '__ANON__normalize_sub_name';
-    my ( $self, $subname ) = @_;
-    if ( ( $subname || '' ) =~ /^\w+$/ ) { # || "" for suppressing test warnings
-        my $package = do {
-            my $call_level = 0;
-            my $this_package;
-            while ( !$this_package || __PACKAGE__ eq $this_package ) {
-                ($this_package) = caller($call_level);
-                $call_level++;
-            }
-            $this_package;
-        };
-        $subname = "${package}::$subname";
-    }
-    return $subname;
-};
 
 sub new {
     my $class = shift;
@@ -91,8 +24,8 @@ sub new {
 
 sub replace {
     my ( $self, $sub_to_replace, $new_sub ) = @_;
-    $sub_to_replace = $self->$_normalize_sub_name($sub_to_replace);
-    $self->$_ensure_code_slot_exists($sub_to_replace)->$_validate_sub_ref($new_sub);
+    $sub_to_replace = $self->_normalize_sub_name($sub_to_replace);
+    $self->_ensure_code_slot_exists($sub_to_replace)->_validate_sub_ref($new_sub);
     {
         no strict 'refs';
         $self->{$sub_to_replace} ||= *$sub_to_replace{CODE};
@@ -104,8 +37,8 @@ sub replace {
 
 sub inject {
     my ( $self, $sub_to_inject, $new_sub ) = @_;
-    $sub_to_inject = $self->$_normalize_sub_name($sub_to_inject);
-    $self->$_ensure_code_slot_does_not_exist($sub_to_inject)->$_validate_sub_ref($new_sub);
+    $sub_to_inject = $self->_normalize_sub_name($sub_to_inject);
+    $self->_ensure_code_slot_does_not_exist($sub_to_inject)->_validate_sub_ref($new_sub);
     {
         no strict 'refs';
         $self->{$sub_to_inject} = undef;
@@ -117,8 +50,8 @@ sub inject {
 
 sub inherit {
     my ( $self, $sub_to_inherit, $new_sub ) = @_;
-    $sub_to_inherit = $self->$_normalize_sub_name($sub_to_inherit);
-    $self->$_ensure_code_slot_can_inherit($sub_to_inherit)->$_validate_sub_ref($new_sub);
+    $sub_to_inherit = $self->_normalize_sub_name($sub_to_inherit);
+    $self->_ensure_code_slot_exists_in_parent_class($sub_to_inherit)->_validate_sub_ref($new_sub);
     {
         no strict 'refs';
         $self->{$sub_to_inherit} = undef;
@@ -130,8 +63,8 @@ sub inherit {
 
 sub wrap {
     my ( $self, $sub_to_replace, $new_sub ) = @_;
-    $sub_to_replace = $self->$_normalize_sub_name($sub_to_replace);
-    $self->$_ensure_code_slot_exists($sub_to_replace)->$_validate_sub_ref($new_sub);
+    $sub_to_replace = $self->_normalize_sub_name($sub_to_replace);
+    $self->_ensure_code_slot_exists($sub_to_replace)->_validate_sub_ref($new_sub);
     {
         no strict 'refs';
         $self->{$sub_to_replace} ||= *$sub_to_replace{CODE};
@@ -150,16 +83,17 @@ sub wrap {
 
 sub restore {
     my ( $self, $name_of_sub ) = @_;
-    $name_of_sub = $self->$_normalize_sub_name($name_of_sub);
+    $name_of_sub = $self->_normalize_sub_name($name_of_sub);
     if ( !$name_of_sub && 1 == keys %$self ) {
         ($name_of_sub) = keys %$self;
     }
-    $self->$_croak(
+    croak(
         sprintf 'You must provide the name of a sub to restore: (%s)' => join
           ', ' => sort keys %$self )
-      unless $name_of_sub;
-    $self->$_croak("Cannot restore a sub that was not replaced ($name_of_sub)")
-      unless exists $self->{$name_of_sub};
+        unless $name_of_sub;
+    croak("Cannot restore a sub that was not replaced ($name_of_sub)")
+        unless exists $self->{$name_of_sub};
+
     no strict 'refs';
     no warnings 'redefine';
     my $maybe_sub_ref = delete $self->{$name_of_sub};
@@ -187,6 +121,62 @@ sub DESTROY {
     }
 }
 
+sub _normalize_sub_name {
+    my ( $self, $subname ) = @_;
+    if ( ( $subname || '' ) =~ /^\w+$/ ) { # || "" for suppressing test warnings
+        my $package = do {
+            my $call_level = 0;
+            my $this_package;
+            while ( !$this_package || __PACKAGE__ eq $this_package ) {
+                ($this_package) = caller($call_level);
+                $call_level++;
+            }
+            $this_package;
+        };
+        $subname = "${package}::$subname";
+    }
+    return $subname;
+};
+
+sub _validate_sub_ref {
+    my ( $self, $sub_ref ) = @_;
+    unless ( 'CODE' eq ref $sub_ref ) {
+        croak("($sub_ref) must be a code reference");
+    }
+    return $self;
+};
+
+sub _ensure_code_slot_exists {
+    my ( $self, $code_slot ) = @_;
+    no strict 'refs';
+    unless ( defined *{$code_slot}{CODE} ) {
+        croak("Cannot replace non-existent sub ($code_slot)");
+    }
+    return $self;
+};
+
+sub _ensure_code_slot_does_not_exist {
+    my ( $self, $code_slot ) = @_;
+    no strict 'refs';
+    if ( defined *{$code_slot}{CODE} ) {
+        croak("Cannot create a sub that already exists ($code_slot)");
+    }
+    return $self;
+};
+
+sub _ensure_code_slot_exists_in_parent_class {
+    my ( $self, $code_slot ) = @_;
+    $self->_ensure_code_slot_does_not_exist($code_slot);
+    {
+        no strict 'refs';
+        my $class  = *{$code_slot}{PACKAGE};
+        my $method = *{$code_slot}{NAME};
+        croak("Sub does not exist in parent class ($code_slot)")
+            unless $class->can($method);
+    }
+    return $self;
+};
+
 1;
 
 __END__
@@ -197,7 +187,7 @@ Sub::Override - Perl extension for easily overriding subroutines
 
 =head1 VERSION
 
-0.11
+0.12
 
 =head1 SYNOPSIS
 

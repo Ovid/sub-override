@@ -4,7 +4,7 @@ Sub::Override - Perl extension for easily overriding subroutines
 
 # VERSION
 
-0.11
+0.12
 
 # SYNOPSIS
 
