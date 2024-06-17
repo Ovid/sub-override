@@ -108,9 +108,13 @@ sub wrap {
     {
         no strict 'refs';
         $self->{$sub_to_replace} ||= *$sub_to_replace{CODE};
-        my $code =  sub { unshift @_, $self->{$sub_to_replace}; goto &$new_sub };
+
+        # passing $sub_to_replace directly to arguments prevents early destruction.
+        my $weakened_sub_to_replace = $self->{$sub_to_replace};
+        my $code = sub { unshift(@_, $weakened_sub_to_replace); goto &$new_sub };
         my $prototype = prototype($self->{$sub_to_replace});
         set_prototype(\&$code, $prototype) if defined $prototype;
+
         no warnings 'redefine';
         *$sub_to_replace = $code;
     }
