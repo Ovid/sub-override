@@ -24,7 +24,7 @@ sub new {
 
 sub replace {
     my ( $self, $sub_to_replace, $new_sub ) = @_;
-    $sub_to_replace = $self->_normalize_sub_name($sub_to_replace);
+    $sub_to_replace = $self->_get_fully_qualified_sub_name($sub_to_replace);
     $self->_ensure_code_slot_exists($sub_to_replace)->_validate_sub_ref($new_sub);
     {
         no strict 'refs';
@@ -37,7 +37,7 @@ sub replace {
 
 sub inject {
     my ( $self, $sub_to_inject, $new_sub ) = @_;
-    $sub_to_inject = $self->_normalize_sub_name($sub_to_inject);
+    $sub_to_inject = $self->_get_fully_qualified_sub_name($sub_to_inject);
     $self->_ensure_code_slot_does_not_exist($sub_to_inject)->_validate_sub_ref($new_sub);
     {
         no strict 'refs';
@@ -50,7 +50,7 @@ sub inject {
 
 sub inherit {
     my ( $self, $sub_to_inherit, $new_sub ) = @_;
-    $sub_to_inherit = $self->_normalize_sub_name($sub_to_inherit);
+    $sub_to_inherit = $self->_get_fully_qualified_sub_name($sub_to_inherit);
     $self->_ensure_code_slot_exists_in_parent_class($sub_to_inherit)->_validate_sub_ref($new_sub);
     {
         no strict 'refs';
@@ -63,7 +63,7 @@ sub inherit {
 
 sub wrap {
     my ( $self, $sub_to_replace, $new_sub ) = @_;
-    $sub_to_replace = $self->_normalize_sub_name($sub_to_replace);
+    $sub_to_replace = $self->_get_fully_qualified_sub_name($sub_to_replace);
     $self->_ensure_code_slot_exists($sub_to_replace)->_validate_sub_ref($new_sub);
     {
         no strict 'refs';
@@ -83,7 +83,7 @@ sub wrap {
 
 sub restore {
     my ( $self, $name_of_sub ) = @_;
-    $name_of_sub = $self->_normalize_sub_name($name_of_sub);
+    $name_of_sub = $self->_get_fully_qualified_sub_name($name_of_sub);
     if ( !$name_of_sub && 1 == keys %$self ) {
         ($name_of_sub) = keys %$self;
     }
@@ -121,7 +121,7 @@ sub DESTROY {
     }
 }
 
-sub _normalize_sub_name {
+sub _get_fully_qualified_sub_name {
     my ( $self, $subname ) = @_;
     if ( ( $subname || '' ) =~ /^\w+$/ ) { # || "" for suppressing test warnings
         my $package = do {
