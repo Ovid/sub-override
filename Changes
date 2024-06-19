@@ -1,3 +1,6 @@
+0.13  Wed Jun 19 2024
+    - Allow a hash of sub/codref for each override routine rather than one at a time.
+
 0.12  Mon Jun 17 2024
     - Add 'inject' method which can inject a new subroutine into a namespace.
     - Add 'inherit' method which can inherit a subroutine from a parent object.
