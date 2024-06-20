@@ -386,14 +386,14 @@ current package.
 =head2 new
 
   my $sub = Sub::Override->new;
-  my $sub = Sub::Override->new($new_sub_ref => $sub_ref);
+  my $sub = Sub::Override->new($sub_name => $sub_ref);
 
 Creates a new C<Sub::Override> instance.  Optionally, you may replace a
 subroutine while creating a new object.
 
 =head2 replace
 
-  $sub->replace($new_sub_ref => $sub_body);
+  $sub->replace($sub_name => $sub_body);
 
 Temporarily replaces a subroutine with another subroutine.
 
@@ -402,27 +402,27 @@ This method will C<croak> if the subroutine to be replaced does not exist.
 =head2 override
 
   my $sub = Sub::Override->new;
-  $sub->override($new_sub_ref => $sub_body);
+  $sub->override($sub_name => $sub_body);
 
 C<override> is an alternate name for C<replace>.  They are the same method.
 
 =head2 inject
 
-  $sub->inject($new_sub_ref => $sub_body);
+  $sub->inject($sub_name => $sub_body);
 
 Temporarily injects a subroutine into a package.  Returns the instance, so
 chaining the method is allowed:
 
 =head2 inherit
 
-  $sub->inherit($new_sub_ref => $sub_body);
+  $sub->inherit($sub_name => $sub_body);
 
 Checks that the subroutine exists in a parent class, but not in the current
 class, and injects it into the current class to inherit the parent's version.
 
 =head2 wrap
 
-  $sub->wrap($new_sub_ref => $sub_body);
+  $sub->wrap($sub_name => $sub_body);
 
 Temporarily wraps a subroutine with another subroutine. The original subroutine
 is passed as the first arg to the new subroutine.
