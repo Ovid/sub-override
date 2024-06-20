@@ -138,7 +138,6 @@ can_ok( $override, 'inject' );
 
     package TempInject;
     sub foo      { 23 }
-    sub bar ($$) { $_[0] + $_[1] }
 
     my $override = $CLASS->new;
 
