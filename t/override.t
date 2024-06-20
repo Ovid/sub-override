@@ -83,8 +83,8 @@ like
   '... but we should not be able to restore it twice';
 
 {
-    my $new_override = $CLASS->new;
-    ok( $new_override->replace( 'Foo::bar', sub {'lexical value'} ),
+    my $override = $CLASS->new;
+    ok( $override->replace( 'Foo::bar', sub {'lexical value'} ),
         'A new override object should be able to replace a subroutine'
     );
 
@@ -97,26 +97,21 @@ is( Foo::bar(), 'original value',
 );
 
 {
-    my $new_override = $CLASS->new( 'Foo::bar', sub {'lexical value'} );
-    ok( $new_override,
+    my $override = $CLASS->new( 'Foo::bar', sub {'lexical value'} );
+    ok( $override,
         'We should be able to override a sub from the constructor' );
 
     is( Foo::bar(), 'lexical value',
         '... and the subroutine should exhibit the new behavior'
     );
-    ok( $new_override->restore,
-        '... and we do not need an argument to restore if only one sub is overridden'
+    ok( $override->restore,
+        '... and we do not need an argument to restore'
     );
     is( Foo::bar(), 'original value',
         '... and the subroutine should exhibit its original behavior'
     );
-    $new_override->replace( 'Foo::bar', sub { } );
-    $new_override->replace( 'Foo::baz', sub { } );
-
-    like
-      exception { $new_override->restore },
-      qr/You must provide the name of a sub to restore: \(Foo::bar, Foo::baz\)/,
-      '... but we must explicitly provide the sub name if more than one was replaced';
+    $override->replace( 'Foo::bar', sub { } );
+    $override->replace( 'Foo::baz', sub { } );
 }
 
 {
@@ -131,45 +126,10 @@ is( Foo::bar(), 'original value',
         'Not fully qualifying a sub name will assume the current package' );
     $override->restore('foo');
     main::is( foo(), 23, '... and we should be able to restore said sub' );
+    main::is( bar(), 'barbar', '... and not restore any other overridden subs' );
 
     $override->restore('TempReplace::bar');
-    main::is( bar(), 42, '... even if we use a full qualified sub name' );
-}
-
-can_ok( $override, 'wrap' );
-
-{
-
-    package TempWrap;
-    sub foo {23}
-    sub bar ($$) {$_[0] + $_[1]}
-
-    my $override = $CLASS->new;
-
-    main::ok( $override->wrap( 'foo',
-        sub {
-            my ($orig, @args) = @_;
-            return $args[0] ? 24 : $orig->();
-        }
-    ), '... and we should be able to successfully wrap a subroutine' );
-    main::is( foo(),  23, '... and wrapped sub foo conditionally returns original value' );
-    main::is( foo(1), 24, '... and wrapped sub foo conditionally returns override value' );
-
-    $override->restore('foo');
-    main::is( foo(1), 23, '... and we can restore a wrapped subroutine' );
-
-    main::ok( $override->wrap( 'bar',
-        sub {
-            my ($orig, @args) = @_;
-            return $args[0] == 4 && $args[1] == 2 ? 42 : $orig->(@args);
-        }
-    ), '... and we should be able to successfully wrap a prototyped subroutine' );
-    main::is( bar(5,2),  7,  '... and wrapped prototyped sub bar conditionally returns original value' );
-    main::is( bar(4,2),  42, '... and wrapped prototyped sub bar conditionally returns override value' );
-
-    # make sure there are no left-over references preventing destroy from running.
-    undef $override;
-    main::is( bar(4,2), 6, '... and we can restore a wrapped subroutine' );
+    main::is( bar(), 42, '... and restore even if we use a full qualified sub name' );
 }
 
 can_ok( $override, 'inject' );
@@ -178,7 +138,6 @@ can_ok( $override, 'inject' );
 
     package TempInject;
     sub foo      { 23 }
-    sub bar ($$) { $_[0] + $_[1] }
 
     my $override = $CLASS->new;
 
@@ -189,7 +148,7 @@ can_ok( $override, 'inject' );
 
     main::ok(
         $override->inject( 'something', sub { 42 } ),
-        '... but injecting a subroutine should succeed'
+        '... but injecting a new subroutine should succeed'
     );
     main::is( TempInject::something(), 42,
         '... and we should be able to call the new function' );
@@ -238,9 +197,101 @@ can_ok( $override, 'inherit' );
     main::is( TempInheritChild->bar(), 'bar-inherited',
       '... and we should be able to call the new function' );
 
+
     $override->restore('bar');
     main::is( TempInheritChild->bar(), 'bar',
       '... and we should be able to restore the original behaviour' );
+}
+
+
+can_ok( $override, 'wrap' );
+
+{
+
+    package TempWrap;
+    sub foo {23}
+    sub bar ($$) {$_[0] + $_[1]}
+
+    my $override = $CLASS->new;
+
+    main::ok( $override->wrap( 'foo',
+        sub {
+            my ($orig, @args) = @_;
+            return $args[0] ? 24 : $orig->();
+        }
+    ), '... and we should be able to successfully wrap a subroutine' );
+    main::is( foo(),  23, '... and wrapped sub foo conditionally returns original value' );
+    main::is( foo(1), 24, '... and wrapped sub foo conditionally returns override value' );
+
+    $override->restore('foo');
+    main::is( foo(1), 23, '... and we can restore a wrapped subroutine' );
+
+    main::ok( $override->wrap( 'bar',
+        sub {
+            my ($orig, @args) = @_;
+            return $args[0] == 4 && $args[1] == 2 ? 42 : $orig->(@args);
+        }
+    ), '... and we should be able to successfully wrap a prototyped subroutine' );
+    main::is( bar(5,2),  7,  '... and wrapped prototyped sub bar conditionally returns original value' );
+    main::is( bar(4,2),  42, '... and wrapped prototyped sub bar conditionally returns override value' );
+
+    # make sure there are no left-over references preventing destroy from running.
+    undef $override;
+    main::is( bar(4,2), 6, '... and we can restore a wrapped subroutine' );
+}
+
+{
+
+    package TempMultiParent;
+    sub new { bless {}, shift }
+    sub inherit1 { 'inherit1' }
+    sub inherit2 { 'inherit2' }
+
+    package TempMultiChild;
+    our @ISA = qw(TempMultiParent);
+    sub replace1 { 'replace1' }
+    sub replace2 { 'replace2' }
+    sub wrap1    { 'wrap1' }
+    sub wrap2    { 'wrap2' }
+
+    main::ok(
+        my $override = $CLASS->new(
+            replace1 => sub { 'replaced1' },
+            replace2 => sub { 'replaced2' },
+        )->inject(
+            inject1 => sub { 'injected1' },
+            inject2 => sub { 'injected2' },
+        )->inherit(
+            inherit1 => sub { 'inherited1' },
+            inherit2 => sub { 'inherited2' },
+        )->wrap(
+            wrap1 => sub { $_[0]->() . ' wrapped' },
+            wrap2 => sub { $_[0]->() . ' wrapped' },
+        ),
+        "We should be able to override multiple subs at once"
+    );
+
+    package main;
+
+    my $child = TempMultiChild->new;
+    is($child->replace1, 'replaced1', "... and 'replace1' was replaced");
+    is($child->replace2, 'replaced2', "... and 'replace2' was replaced");
+    is($child->inject1, 'injected1', "... and 'inject1' was injected");
+    is($child->inject2, 'injected2', "... and 'inject2' was injected");
+    is($child->inherit1, 'inherited1', "... and 'inherit1' was inherited");
+    is($child->inherit2, 'inherited2', "... and 'inherit2' was inherited");
+    is($child->wrap1, 'wrap1 wrapped', "... and 'wrap1' was wrapped");
+    is($child->wrap2, 'wrap2 wrapped', "... and 'wrap2' was wrapped");
+
+    undef $override;
+    is($child->replace1, 'replace1', "... and 'replace1' was restored");
+    is($child->replace2, 'replace2', "... and 'replace2' was restored");
+    like exception { $child->inject1 }, qr/\QCan't locate object method/, "... and 'inject1' was restored";
+    like exception { $child->inject2 }, qr/\QCan't locate object method/, "... and 'inject2' was restored";
+    is($child->inherit1, 'inherit1', "... and 'inherit1' was restored");
+    is($child->inherit2, 'inherit2', "... and 'inherit2' was restored");
+    is($child->wrap1, 'wrap1', "... and 'wrap1' was restored");
+    is($child->wrap2, 'wrap2', "... and 'wrap2' was restored");
 }
 
 done_testing;
